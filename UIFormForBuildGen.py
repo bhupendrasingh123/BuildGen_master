@@ -12,7 +12,7 @@ class connectionBuildServer:
             ssh.close()
             print ("connection Success !!! " )
             #msg= "connection to linux machine successful"
-        
+            #test
         except :            
             msg = 1
             print ("Connection failed" )
