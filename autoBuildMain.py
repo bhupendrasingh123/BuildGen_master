@@ -1,47 +1,13 @@
-from bottle import get, post, request, run, route
-import paramiko
-
-class connectionBuildServer:
-    def servercon(self):
-        msg = 0
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        try:
-            ssh.connect('cable-mw-dev-2.in.nds.com', port=22, username='bbartwal', password='C*sc0nds')
-            ssh.exec_command('mkdir test333')
-            ssh.close()
-            print ("connection Success !!! " )
-            #msg= "connection to linux machine successful"
-            #test
-        except :            
-            msg = 1
-            print ("Connection failed" )
-            ssh.close()
-        # server = ssh.Connection(host='host', username='user', private_key='key_path')
-        # result = server.execute('your command')
-        return msg
-        
-
-
-class BuildData:
-    def set_userName(self, user):
-        self.userName = user
-    def get_userName(self):
-        return self.userName
-    def set_buildName(self, build):
-        self.buildName = build
-    def get_buildName(self):
-        return self.buildName
-    def set_buildType(self, btype):
-        self.buildType = btype
-    def get_buildType(self):
-        return self.buildType
-
+from bottle import get, post, request, run, route, template
+from connect_to_linux import*
+from userBuildData import*
+from presql_check import*
 def main():
     print("test")
     bd = BuildData()
-    con = connectionBuildServer()
-    @route ('/build-gen')
+    con = connection()
+    dbF = dbFuntion()
+    @route('/build-gen')
     def buildUi():
         return '''
             <form action="/build-gen" method="post">
@@ -85,18 +51,22 @@ def main():
         bd.set_buildName(request.forms.get('branchName'))
         bd.set_buildType(request.forms.get('binaryType'))
         #con.servercon()
+        branch = bd.get_buildName()
+        print 'branch name  : ' + branch
+        directory = 'UPC_Repo'
         if(len(bd.get_userName()) == 0):
             return '<h2> go back to the previous page and enter proper User Name </h2> </br> <a href = "http://localhost:8080/build-gen"> previous page </a>'
         if(len(bd.get_buildName()) == 0):
             return '<h2> go back to the previous page and enter proper Branch Name </h2> </br> <a href = "http://localhost:8080/build-gen"> previous page </a>'
         if(len(bd.get_buildType()) == 0):
             return '<h2> go back to the previous page and Select Binary Type </h2> </br> <a href = "http://localhost:8080/build-gen"> previous page </a>'
-        msg = con.servercon()
-        if msg == 0 :
+        dbF.addValues(bd.get_userName(), bd.get_buildName(), bd.get_buildType(), dbF.currentDateTime(), 'NotStarted')
+        msg = ''
+        if len(msg) == 0 :
             print "generating binary"
             return '<h1> Thanks ' + bd.get_userName() + ' for the inputs </h1></br><h3> Branch Name : ' + bd.get_buildName() + '</h3><h3> Binray Type : ' + bd.get_buildType() + '</h3> </br> <a href = "http://localhost:8080/build-gen"> home </a> </br> Build in Progress ..... </br>'
         else :
-            return '<h1> Connection to linux machine has failed,please check if VPN is not logged-in</h1>'
+            return '<h1>' + msg + '</h1>'
 
     run(host='localhost', port=8080, debug=True)
 
